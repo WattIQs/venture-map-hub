@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { BoundingBox, CategoryKey, GeoPoint } from "./types";
+import type { BoundingBox, CategoryKey } from "./types";
 import { buildOverpassQuery } from "./overpass-query";
 import { fetchWithTimeout, OSM_UA, OVERPASS_MIRRORS } from "./geo.server";
 
@@ -19,49 +19,6 @@ export interface PlaceSuggestion {
   lon: number;
   boundingBox: BoundingBox | null;
 }
-
-export const geocodeCityServer = createServerFn({ method: "POST" })
-  .inputValidator((data: { country: string; state?: string | null; city: string }) => data)
-  .handler(async ({ data }): Promise<GeoPoint> => {
-    const query = data.state
-      ? `${data.city}, ${data.state}, ${data.country}`
-      : `${data.city}, ${data.country}`;
-
-    const response = await fetchWithTimeout(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,
-      { headers: { Accept: "application/json", "User-Agent": OSM_UA } },
-      20000
-    );
-    if (!response.ok) {
-      throw new Error(
-        `Não foi possível localizar a cidade agora (código ${response.status}). Tente novamente em alguns segundos.`
-      );
-    }
-    const results = (await response.json()) as {
-      lat: string;
-      lon: string;
-      boundingbox?: [string, string, string, string];
-    }[];
-    const first = results[0];
-    if (!first) {
-      throw new Error(
-        "Cidade não encontrada. Tente escrever o nome sem bairro e sem abreviações."
-      );
-    }
-    const bb = first.boundingbox;
-    return {
-      lat: Number.parseFloat(first.lat),
-      lon: Number.parseFloat(first.lon),
-      boundingBox: bb
-        ? {
-            south: Number.parseFloat(bb[0]!),
-            north: Number.parseFloat(bb[1]!),
-            west: Number.parseFloat(bb[2]!),
-            east: Number.parseFloat(bb[3]!),
-          }
-        : null,
-    };
-  });
 
 /** Busca livre: país, estado, cidade, bairro, rua ou ponto de referência. */
 export const searchPlacesServer = createServerFn({ method: "POST" })
