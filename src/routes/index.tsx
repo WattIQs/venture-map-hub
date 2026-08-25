@@ -43,7 +43,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const DEFAULT_CATEGORIES: CategoryKey[] = ["restaurant", "fast_food", "cafe", "bar"];
+const DEFAULT_CATEGORIES: CategoryKey[] = [];
 
 /** Limita a área varrida para o Overpass não estourar em estados/países inteiros. */
 const MAX_SPAN = 0.18;
