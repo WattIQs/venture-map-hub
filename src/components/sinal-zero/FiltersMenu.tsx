@@ -105,7 +105,6 @@ export function FiltersMenu({
               <SelectItem value="any">Todos os estabelecimentos</SelectItem>
               <SelectItem value="weak">Apenas presença fraca ou nula</SelectItem>
               <SelectItem value="zero">Apenas sinal zero (sem nada)</SelectItem>
-              <SelectItem value="contactable">Apenas contatáveis (WhatsApp/Insta)</SelectItem>
             </SelectContent>
           </Select>
         </div>

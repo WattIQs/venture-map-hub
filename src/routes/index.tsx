@@ -128,7 +128,10 @@ function Index() {
 
   const visibleResults = useMemo(() => {
     const order: Record<"zero" | "weak" | "full", number> = { zero: 0, weak: 1, full: 2 };
-    let list = results;
+    // Sempre apenas estabelecimentos contatáveis (WhatsApp válido ou Instagram)
+    let list = results.filter(
+      (r) => r.contact.whatsappValid || Boolean(r.contact.instagramUrl)
+    );
 
     if (minRating !== "any") {
       const min = Number.parseFloat(minRating);
@@ -143,9 +146,6 @@ function Index() {
     }
     if (presenceFilter === "zero") {
       list = list.filter((r) => r.level === "zero");
-    }
-    if (presenceFilter === "contactable") {
-      list = list.filter((r) => r.contact.whatsappValid || Boolean(r.contact.instagramUrl));
     }
 
     const sorted = [...list];
@@ -237,7 +237,7 @@ function Index() {
               <p className="px-4 py-6 text-xs text-muted-foreground">
                 {results.length === 0
                   ? "Busque uma cidade, bairro ou rua na barra de pesquisa para varrer a área."
-                  : "Nenhum resultado passou nos filtros atuais."}
+                  : "Nenhum estabelecimento contatável (WhatsApp ou Instagram) passou nos filtros atuais."}
               </p>
             ) : (
               visibleResults.map((item) => (
