@@ -16,6 +16,7 @@ export function PlaceSearchBar({ onPick, scanning, currentLabel }: PlaceSearchBa
   const [value, setValue] = useState("");
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [open, setOpen] = useState(false);
+  const [picked, setPicked] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -63,6 +64,7 @@ export function PlaceSearchBar({ onPick, scanning, currentLabel }: PlaceSearchBa
 
   const pick = (place: PlaceSuggestion) => {
     pickedLabelRef.current = place.shortLabel;
+    setPicked(place.shortLabel);
     setSuggestions([]);
     setValue(place.shortLabel);
     setOpen(false);
@@ -80,7 +82,10 @@ export function PlaceSearchBar({ onPick, scanning, currentLabel }: PlaceSearchBa
       </span>
       <input
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => {
+          setPicked(null);
+          setValue(e.target.value);
+        }}
         onFocus={() => suggestions.length > 0 && setOpen(true)}
         onKeyDown={(e) => {
           if (!open || suggestions.length === 0) return;
@@ -103,7 +108,7 @@ export function PlaceSearchBar({ onPick, scanning, currentLabel }: PlaceSearchBa
         className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-3 text-xs outline-none placeholder:text-muted-foreground/70 focus:border-primary"
       />
 
-      {open && suggestions.length > 0 && (
+      {open && value !== picked && suggestions.length > 0 && (
         <ul className="absolute left-0 right-0 top-11 z-[900] overflow-hidden rounded-xl border border-border bg-popover shadow-xl">
           {suggestions.map((place, i) => (
             <li key={`${place.lat}-${place.lon}-${i}`}>
