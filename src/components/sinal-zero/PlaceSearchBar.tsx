@@ -19,8 +19,13 @@ export function PlaceSearchBar({ onPick, scanning, currentLabel }: PlaceSearchBa
   const [loading, setLoading] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
+  const skipNextRef = useRef(false);
 
   useEffect(() => {
+    if (skipNextRef.current) {
+      skipNextRef.current = false;
+      return;
+    }
     const term = value.trim();
     if (term.length < 3) {
       setSuggestions([]);
@@ -60,6 +65,8 @@ export function PlaceSearchBar({ onPick, scanning, currentLabel }: PlaceSearchBa
   }, []);
 
   const pick = (place: PlaceSuggestion) => {
+    skipNextRef.current = true;
+    setSuggestions([]);
     setValue(place.shortLabel);
     setOpen(false);
     onPick(place);
