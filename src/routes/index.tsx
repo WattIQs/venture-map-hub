@@ -60,6 +60,7 @@ function Index() {
   const [categories, setCategories] = useState<CategoryKey[]>(DEFAULT_CATEGORIES);
   const [minRating, setMinRating] = useState<string>("any");
   const [priceFilter, setPriceFilter] = useState<string>("any");
+  const [presenceFilter, setPresenceFilter] = useState<string>("any");
   const [sortKey, setSortKey] = useState<SortKey>("relevance");
 
   const [scanning, setScanning] = useState(false);
