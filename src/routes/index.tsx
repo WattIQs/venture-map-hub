@@ -43,7 +43,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const DEFAULT_CATEGORIES: CategoryKey[] = ["restaurant", "fast_food", "cafe", "bar"];
+const DEFAULT_CATEGORIES: CategoryKey[] = [];
 
 /** Limita a área varrida para o Overpass não estourar em estados/países inteiros. */
 const MAX_SPAN = 0.18;
@@ -60,6 +60,7 @@ function Index() {
   const [categories, setCategories] = useState<CategoryKey[]>(DEFAULT_CATEGORIES);
   const [minRating, setMinRating] = useState<string>("any");
   const [priceFilter, setPriceFilter] = useState<string>("any");
+  const [presenceFilter, setPresenceFilter] = useState<string>("any");
   const [sortKey, setSortKey] = useState<SortKey>("relevance");
 
   const [scanning, setScanning] = useState(false);

@@ -21,6 +21,8 @@ interface FiltersMenuProps {
   onMinRatingChange: (value: string) => void;
   priceFilter: string;
   onPriceFilterChange: (value: string) => void;
+  presenceFilter: string;
+  onPresenceFilterChange: (value: string) => void;
   sortKey: SortKey;
   onSortKeyChange: (value: SortKey) => void;
 }
@@ -30,12 +32,15 @@ export function FiltersMenu({
   onMinRatingChange,
   priceFilter,
   onPriceFilterChange,
+  presenceFilter,
+  onPresenceFilterChange,
   sortKey,
   onSortKeyChange,
 }: FiltersMenuProps) {
   const activeCount =
     (minRating !== "any" ? 1 : 0) +
     (priceFilter !== "any" ? 1 : 0) +
+    (presenceFilter !== "any" ? 1 : 0) +
     (sortKey !== "relevance" ? 1 : 0);
 
   return (
@@ -90,6 +95,23 @@ export function FiltersMenu({
 
         <div className="space-y-1.5">
           <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Presença digital
+          </Label>
+          <Select value={presenceFilter} onValueChange={onPresenceFilterChange}>
+            <SelectTrigger className="h-9 bg-background text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Todos os estabelecimentos</SelectItem>
+              <SelectItem value="weak">Apenas presença fraca ou nula</SelectItem>
+              <SelectItem value="zero">Apenas sinal zero (sem nada)</SelectItem>
+              <SelectItem value="contactable">Apenas contatáveis (WhatsApp/Insta)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
             Ordenar por
           </Label>
           <Select value={sortKey} onValueChange={(v) => onSortKeyChange(v as SortKey)}>
@@ -111,6 +133,7 @@ export function FiltersMenu({
           onClick={() => {
             onMinRatingChange("any");
             onPriceFilterChange("any");
+            onPresenceFilterChange("any");
             onSortKeyChange("relevance");
           }}
           className="w-full rounded-md border border-border py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted"
