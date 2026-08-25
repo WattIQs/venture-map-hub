@@ -237,7 +237,7 @@ function Index() {
               <p className="px-4 py-6 text-xs text-muted-foreground">
                 {results.length === 0
                   ? "Busque uma cidade, bairro ou rua na barra de pesquisa para varrer a área."
-                  : "Nenhum resultado passou nos filtros atuais."}
+                  : "Nenhum estabelecimento contatável (WhatsApp ou Instagram) passou nos filtros atuais."}
               </p>
             ) : (
               visibleResults.map((item) => (
