@@ -133,6 +133,7 @@ export function FiltersMenu({
           onClick={() => {
             onMinRatingChange("any");
             onPriceFilterChange("any");
+            onPresenceFilterChange("any");
             onSortKeyChange("relevance");
           }}
           className="w-full rounded-md border border-border py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted"
