@@ -111,3 +111,52 @@ export const searchOverpassServer = createServerFn({ method: "POST" })
       `Os servidores do OpenStreetMap estão sobrecarregados agora. Tente novamente em alguns segundos. (${errors.join(" | ")})`
     );
   });
+
+export interface PlaceSuggestion {
+  label: string;
+  lat: number;
+  lon: number;
+  boundingBox: BoundingBox | null;
+}
+
+/** Busca livre de lugares (país, estado, cidade, bairro, endereço) via Nominatim. */
+export const searchPlacesServer = createServerFn({ method: "POST" })
+  .inputValidator((data: { q: string }) => data)
+  .handler(async ({ data }): Promise<PlaceSuggestion[]> => {
+    const q = data.q.trim();
+    if (q.length < 3) return [];
+
+    const response = await fetchWithTimeout(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=0&limit=6&q=${encodeURIComponent(q)}`,
+      { headers: { Accept: "application/json", "User-Agent": UA } },
+      20000
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Busca de lugares indisponível agora (código ${response.status}). Tente de novo em alguns segundos.`
+      );
+    }
+    const results = (await response.json()) as {
+      display_name: string;
+      lat: string;
+      lon: string;
+      boundingbox?: [string, string, string, string];
+    }[];
+
+    return results.map((r) => {
+      const bb = r.boundingbox;
+      return {
+        label: r.display_name,
+        lat: Number.parseFloat(r.lat),
+        lon: Number.parseFloat(r.lon),
+        boundingBox: bb
+          ? {
+              south: Number.parseFloat(bb[0]!),
+              north: Number.parseFloat(bb[1]!),
+              west: Number.parseFloat(bb[2]!),
+              east: Number.parseFloat(bb[3]!),
+            }
+          : null,
+      };
+    });
+  });
