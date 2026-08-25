@@ -21,6 +21,8 @@ interface FiltersMenuProps {
   onMinRatingChange: (value: string) => void;
   priceFilter: string;
   onPriceFilterChange: (value: string) => void;
+  presenceFilter: string;
+  onPresenceFilterChange: (value: string) => void;
   sortKey: SortKey;
   onSortKeyChange: (value: SortKey) => void;
 }
@@ -30,12 +32,15 @@ export function FiltersMenu({
   onMinRatingChange,
   priceFilter,
   onPriceFilterChange,
+  presenceFilter,
+  onPresenceFilterChange,
   sortKey,
   onSortKeyChange,
 }: FiltersMenuProps) {
   const activeCount =
     (minRating !== "any" ? 1 : 0) +
     (priceFilter !== "any" ? 1 : 0) +
+    (presenceFilter !== "any" ? 1 : 0) +
     (sortKey !== "relevance" ? 1 : 0);
 
   return (
