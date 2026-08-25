@@ -138,6 +138,15 @@ function Index() {
       const level = Number.parseInt(priceFilter, 10);
       list = list.filter((r) => r.priceLevel === level);
     }
+    if (presenceFilter === "weak") {
+      list = list.filter((r) => r.level !== "full");
+    }
+    if (presenceFilter === "zero") {
+      list = list.filter((r) => r.level === "zero");
+    }
+    if (presenceFilter === "contactable") {
+      list = list.filter((r) => r.contact.whatsappValid || Boolean(r.contact.instagramUrl));
+    }
 
     const sorted = [...list];
     sorted.sort((a, b) => {
@@ -158,7 +167,7 @@ function Index() {
       }
     });
     return sorted;
-  }, [results, minRating, priceFilter, sortKey]);
+  }, [results, minRating, priceFilter, presenceFilter, sortKey]);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -184,6 +193,8 @@ function Index() {
           onMinRatingChange={setMinRating}
           priceFilter={priceFilter}
           onPriceFilterChange={setPriceFilter}
+          presenceFilter={presenceFilter}
+          onPresenceFilterChange={setPresenceFilter}
           sortKey={sortKey}
           onSortKeyChange={setSortKey}
         />
