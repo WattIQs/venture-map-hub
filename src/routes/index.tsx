@@ -1,43 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { ChevronDown, Loader2, Radar, Search, SlidersHorizontal } from "lucide-react";
+import { Loader2, Radar } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-
-import {
-  fetchCountries,
-  fetchStates,
-  fetchCitiesByState,
-  fetchCitiesByCountry,
-} from "@/lib/apis";
-import { geocodeCityServer, searchOverpassServer } from "@/lib/geo.functions";
+import { searchOverpassServer, type PlaceSuggestion } from "@/lib/geo.functions";
 import { processOverpassResults } from "@/lib/lead-qualification";
 
 import { getSavedLeads, saveLead, removeLead, isLeadSaved } from "@/lib/store";
-import type {
-  CategoryKey,
-  City,
-  Country,
-  Establishment,
-  SavedLead,
-  SortKey,
-  State,
-} from "@/lib/types";
-import { SORT_LABELS } from "@/lib/types";
+import type { CategoryKey, Establishment, SavedLead, SortKey } from "@/lib/types";
 
-import { CategoryChips } from "@/components/sinal-zero/CategoryChips";
+import { CategoryMenu } from "@/components/sinal-zero/CategoryMenu";
 import { ExportCsvButton } from "@/components/sinal-zero/ExportCsvButton";
+import { FiltersMenu } from "@/components/sinal-zero/FiltersMenu";
 import { PlaceRow } from "@/components/sinal-zero/PlaceRow";
+import { PlaceSearchBar } from "@/components/sinal-zero/PlaceSearchBar";
 import { SavedLeadsDrawer } from "@/components/sinal-zero/SavedLeadsDrawer";
 
 const MapCanvas = lazy(() => import("@/components/sinal-zero/MapCanvas"));
@@ -69,6 +45,9 @@ export const Route = createFileRoute("/")({
 
 const DEFAULT_CATEGORIES: CategoryKey[] = ["restaurant", "fast_food", "cafe", "bar"];
 
+/** Limita a área varrida para o Overpass não estourar em estados/países inteiros. */
+const MAX_SPAN = 0.18;
+
 function MapSkeleton() {
   return (
     <div className="flex h-full w-full items-center justify-center bg-muted/30">
@@ -78,130 +57,26 @@ function MapSkeleton() {
 }
 
 function Index() {
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [states, setStates] = useState<State[]>([]);
-  const [cities, setCities] = useState<City[]>([]);
-
-  const [selectedCountry, setSelectedCountry] = useState<string>("");
-  const [selectedState, setSelectedState] = useState<string>("");
-  const [selectedCity, setSelectedCity] = useState<string>("");
-
   const [categories, setCategories] = useState<CategoryKey[]>(DEFAULT_CATEGORIES);
-  const [onlyLowSignal, setOnlyLowSignal] = useState(true);
-  const [onlyContactable, setOnlyContactable] = useState(true);
   const [minRating, setMinRating] = useState<string>("any");
   const [priceFilter, setPriceFilter] = useState<string>("any");
   const [sortKey, setSortKey] = useState<SortKey>("relevance");
-  const [query, setQuery] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(true);
 
-  const [loadingCountries, setLoadingCountries] = useState(true);
-  const [loadingStates, setLoadingStates] = useState(false);
-  const [loadingCities, setLoadingCities] = useState(false);
   const [scanning, setScanning] = useState(false);
-
   const [results, setResults] = useState<Establishment[]>([]);
   const [savedLeads, setSavedLeads] = useState<SavedLead[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [center, setCenter] = useState<{ lat: number; lon: number } | null>(null);
+  const [place, setPlace] = useState<PlaceSuggestion | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoadingCountries(true);
-    fetchCountries()
-      .then((data) => {
-        if (!cancelled) setCountries(data);
-      })
-      .catch(() => {
-        if (!cancelled) setError("Não foi possível carregar a lista de países.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingCountries(false);
-      });
-
     setSavedLeads(getSavedLeads());
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  useEffect(() => {
-    if (!selectedCountry) {
-      setStates([]);
-      setSelectedState("");
-      return;
-    }
-
-    let cancelled = false;
-    setLoadingStates(true);
-    setSelectedState("");
-    setCities([]);
-    setSelectedCity("");
-
-    const loadCountryCities = () => {
-      setLoadingCities(true);
-      fetchCitiesByCountry(selectedCountry)
-        .then((citiesData) => {
-          if (!cancelled) setCities(citiesData);
-        })
-        .catch(() => {
-          if (!cancelled) setError("Não foi possível carregar cidades deste país.");
-        })
-        .finally(() => {
-          if (!cancelled) setLoadingCities(false);
-        });
-    };
-
-    fetchStates(selectedCountry)
-      .then((data) => {
-        if (cancelled) return;
-        setStates(data);
-        if (data.length === 0) loadCountryCities();
-      })
-      .catch(() => {
-        if (cancelled) return;
-        loadCountryCities();
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingStates(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedCountry]);
-
-  useEffect(() => {
-    if (!selectedCountry || !selectedState) return;
-
-    let cancelled = false;
-    setLoadingCities(true);
-    setSelectedCity("");
-
-    fetchCitiesByState(selectedCountry, selectedState)
-      .then((data) => {
-        if (!cancelled) setCities(data);
-      })
-      .catch(() => {
-        if (!cancelled) setError("Não foi possível carregar cidades deste estado.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingCities(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedCountry, selectedState]);
-
-  const handleScan = async () => {
-    if (!selectedCountry || !selectedCity) {
-      setError("Selecione país e cidade para escanear.");
-      return;
-    }
-    if (categories.length === 0) {
-      setError("Selecione pelo menos uma categoria.");
+  const runScan = async (target: PlaceSuggestion, cats: CategoryKey[]) => {
+    if (cats.length === 0) {
+      setError("Escolha pelo menos uma categoria no menu Categorias.");
       return;
     }
 
@@ -209,36 +84,39 @@ function Index() {
     setScanning(true);
     setResults([]);
     setSelectedId(null);
+    setCenter({ lat: target.lat, lon: target.lon });
 
     try {
-      const geo = await geocodeCityServer({
-        data: {
-          country: selectedCountry,
-          state: selectedState || null,
-          city: selectedCity,
-        },
-      });
-      setCenter({ lat: geo.lat, lon: geo.lon });
-      const delta = 0.09;
-      const area =
-        geo.boundingBox ?? {
-          south: geo.lat - delta,
-          north: geo.lat + delta,
-          west: geo.lon - delta,
-          east: geo.lon + delta,
-        };
-      const data = await searchOverpassServer({ data: { area, categories } });
-      const processed = processOverpassResults(data.elements, categories);
+      const bb = target.boundingBox;
+      const half = MAX_SPAN / 2;
+      const area = {
+        south: Math.max(bb?.south ?? -90, target.lat - half),
+        north: Math.min(bb?.north ?? 90, target.lat + half),
+        west: Math.max(bb?.west ?? -180, target.lon - half),
+        east: Math.min(bb?.east ?? 180, target.lon + half),
+      };
+
+      const data = await searchOverpassServer({ data: { area, categories: cats } });
+      const processed = processOverpassResults(data.elements, cats);
       setResults(processed);
-      setFiltersOpen(false);
       if (processed.length === 0) {
-        setError("Nenhum estabelecimento encontrado. Tente outra categoria ou cidade.");
+        setError("Nenhum estabelecimento encontrado aqui. Tente outra categoria ou outro local.");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao escanear área.");
     } finally {
       setScanning(false);
     }
+  };
+
+  const handlePickPlace = (target: PlaceSuggestion) => {
+    setPlace(target);
+    void runScan(target, categories);
+  };
+
+  const handleCategoriesChange = (next: CategoryKey[]) => {
+    setCategories(next);
+    if (place) void runScan(place, next);
   };
 
   const handleToggleSave = (lead: Establishment) => {
@@ -251,8 +129,6 @@ function Index() {
     const order: Record<"zero" | "weak" | "full", number> = { zero: 0, weak: 1, full: 2 };
     let list = results;
 
-    if (onlyLowSignal) list = list.filter((r) => r.level !== "full");
-    if (onlyContactable) list = list.filter((r) => r.contactable);
     if (minRating !== "any") {
       const min = Number.parseFloat(minRating);
       list = list.filter((r) => r.rating !== null && r.rating >= min);
@@ -260,15 +136,6 @@ function Index() {
     if (priceFilter !== "any") {
       const level = Number.parseInt(priceFilter, 10);
       list = list.filter((r) => r.priceLevel === level);
-    }
-    const q = query.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (r) =>
-          r.name.toLowerCase().includes(q) ||
-          r.category.toLowerCase().includes(q) ||
-          r.address.toLowerCase().includes(q)
-      );
     }
 
     const sorted = [...list];
@@ -290,43 +157,37 @@ function Index() {
       }
     });
     return sorted;
-  }, [results, onlyLowSignal, onlyContactable, minRating, priceFilter, query, sortKey]);
+  }, [results, minRating, priceFilter, sortKey]);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      {/* Barra superior compacta */}
-      <header className="flex shrink-0 items-center gap-3 border-b border-border bg-card/80 px-3 py-2 backdrop-blur">
+      {/* Barra superior: logo, busca de lugares, menus ocultos */}
+      <header className="flex shrink-0 items-center gap-2 border-b border-border bg-card/80 px-3 py-2 backdrop-blur sm:gap-3">
         <div className="flex shrink-0 items-center gap-2">
           <Radar className="h-5 w-5 text-signal-zero" />
-          <span className="text-sm font-bold tracking-tight">
+          <span className="hidden text-sm font-bold tracking-tight sm:inline">
             Sinal <span className="text-gradient-signal">Zero</span>
           </span>
         </div>
 
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar nos resultados (nome, categoria, endereço)"
-            className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-3 text-xs outline-none placeholder:text-muted-foreground/70 focus:border-primary"
-          />
-        </div>
+        <PlaceSearchBar
+          onPick={handlePickPlace}
+          scanning={scanning}
+          currentLabel={place?.shortLabel ?? null}
+        />
 
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0 gap-1.5 text-xs"
-          onClick={() => setFiltersOpen((v) => !v)}
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          Filtros
-          <ChevronDown
-            className={`h-3.5 w-3.5 transition-transform ${filtersOpen ? "rotate-180" : ""}`}
-          />
-        </Button>
+        <CategoryMenu value={categories} onChange={handleCategoriesChange} />
 
-        <div className="hidden shrink-0 items-center gap-2 sm:flex">
+        <FiltersMenu
+          minRating={minRating}
+          onMinRatingChange={setMinRating}
+          priceFilter={priceFilter}
+          onPriceFilterChange={setPriceFilter}
+          sortKey={sortKey}
+          onSortKeyChange={setSortKey}
+        />
+
+        <div className="hidden shrink-0 items-center gap-2 lg:flex">
           <SavedLeadsDrawer
             leads={savedLeads}
             onRemove={(id) => {
@@ -338,157 +199,10 @@ function Index() {
         </div>
       </header>
 
-      {/* Painel de busca / filtros — colapsável, ocupa pouco espaço */}
-      {filtersOpen && (
-        <div className="shrink-0 border-b border-border bg-card/60 px-3 py-3">
-          <div className="grid gap-2 md:grid-cols-4">
-            <Select
-              value={selectedCountry}
-              onValueChange={setSelectedCountry}
-              disabled={loadingCountries}
-            >
-              <SelectTrigger className="h-9 bg-background text-xs">
-                <SelectValue
-                  placeholder={loadingCountries ? "Carregando países..." : "País"}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {countries.map((c) => (
-                  <SelectItem key={c.name} value={c.name}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={selectedState}
-              onValueChange={setSelectedState}
-              disabled={!selectedCountry || loadingStates || states.length === 0}
-            >
-              <SelectTrigger className="h-9 bg-background text-xs">
-                <SelectValue
-                  placeholder={
-                    loadingStates
-                      ? "Carregando estados..."
-                      : states.length === 0 && selectedCountry
-                        ? "País sem estados"
-                        : "Estado"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {states.map((s) => (
-                  <SelectItem key={s.name} value={s.name}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={selectedCity}
-              onValueChange={setSelectedCity}
-              disabled={!selectedCountry || loadingCities || cities.length === 0}
-            >
-              <SelectTrigger className="h-9 bg-background text-xs">
-                <SelectValue
-                  placeholder={loadingCities ? "Carregando cidades..." : "Cidade"}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {cities.map((c) => (
-                  <SelectItem key={c.name} value={c.name}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button
-              onClick={handleScan}
-              disabled={scanning || !selectedCountry || !selectedCity}
-              className="h-9 gap-2 text-xs"
-            >
-              {scanning ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Escaneando...
-                </>
-              ) : (
-                <>
-                  <Radar className="h-3.5 w-3.5" />
-                  Escanear área
-                </>
-              )}
-            </Button>
-          </div>
-
-          <div className="mt-3">
-            <CategoryChips value={categories} onChange={setCategories} />
-          </div>
-
-          <div className="mt-3 grid gap-2 md:grid-cols-4">
-            <Select value={minRating} onValueChange={setMinRating}>
-              <SelectTrigger className="h-9 bg-background text-xs">
-                <SelectValue placeholder="Classificação" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any">Qualquer classificação</SelectItem>
-                <SelectItem value="2">2 estrelas ou mais</SelectItem>
-                <SelectItem value="3">3 estrelas ou mais</SelectItem>
-                <SelectItem value="4">4 estrelas ou mais</SelectItem>
-                <SelectItem value="4.5">4,5 estrelas ou mais</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={priceFilter} onValueChange={setPriceFilter}>
-              <SelectTrigger className="h-9 bg-background text-xs">
-                <SelectValue placeholder="Preço" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any">Qualquer preço</SelectItem>
-                <SelectItem value="1">$ · Preço baixo</SelectItem>
-                <SelectItem value="2">$$ · Preço médio</SelectItem>
-                <SelectItem value="3">$$$ · Preço alto</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-              <SelectTrigger className="h-9 bg-background text-xs">
-                <SelectValue placeholder="Ordenar" />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
-                  <SelectItem key={key} value={key}>
-                    {SORT_LABELS[key]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3">
-              <Label htmlFor="only-contactable" className="text-[11px] text-muted-foreground">
-                Só contatáveis
-              </Label>
-              <Switch
-                id="only-contactable"
-                checked={onlyContactable}
-                onCheckedChange={setOnlyContactable}
-              />
-              <Label htmlFor="only-low" className="text-[11px] text-muted-foreground">
-                Sinal fraco
-              </Label>
-              <Switch id="only-low" checked={onlyLowSignal} onCheckedChange={setOnlyLowSignal} />
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Lista à esquerda + mapa à direita */}
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <aside className="flex h-1/2 min-h-0 w-full flex-col border-b border-border bg-card/40 lg:h-auto lg:w-[400px] lg:shrink-0 lg:border-b-0 lg:border-r">
-          <div className="flex shrink-0 items-center justify-between px-4 py-2.5">
+      <div className="flex min-h-0 flex-1 flex-col gap-0 p-0 lg:flex-row lg:gap-3 lg:p-3">
+        <aside className="flex h-1/2 min-h-0 w-full flex-col overflow-hidden border-b border-border bg-card/40 lg:h-auto lg:w-[460px] lg:shrink-0 lg:rounded-xl lg:border">
+          <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-2.5">
             <h2 className="text-sm font-semibold">Resultados</h2>
             <span className="text-[11px] text-muted-foreground">
               {visibleResults.length} de {results.length}
@@ -510,16 +224,16 @@ function Index() {
             ) : visibleResults.length === 0 ? (
               <p className="px-4 py-6 text-xs text-muted-foreground">
                 {results.length === 0
-                  ? "Escolha país, estado, cidade e categorias e clique em Escanear área."
+                  ? "Busque uma cidade, bairro ou rua na barra de pesquisa para varrer a área."
                   : "Nenhum resultado passou nos filtros atuais."}
               </p>
             ) : (
-              visibleResults.map((place) => (
+              visibleResults.map((item) => (
                 <PlaceRow
-                  key={place.id}
-                  place={place}
-                  active={place.id === selectedId}
-                  saved={savedLeads.some((l) => l.id === place.id)}
+                  key={item.id}
+                  place={item}
+                  active={item.id === selectedId}
+                  saved={savedLeads.some((l) => l.id === item.id)}
                   onSelect={setSelectedId}
                   onToggleSave={handleToggleSave}
                 />
@@ -528,7 +242,7 @@ function Index() {
           </div>
         </aside>
 
-        <main className="relative min-h-0 flex-1">
+        <main className="relative min-h-0 flex-1 overflow-hidden border-t border-border lg:rounded-xl lg:border lg:shadow-lg">
           <ClientOnly fallback={<MapSkeleton />}>
             <Suspense fallback={<MapSkeleton />}>
               <MapCanvas
@@ -543,7 +257,7 @@ function Index() {
           {scanning && (
             <div className="absolute left-1/2 top-3 z-[500] flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-[11px] text-muted-foreground shadow-lg">
               <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-              Localizando e varrendo a área...
+              Varrendo a área...
             </div>
           )}
         </main>
