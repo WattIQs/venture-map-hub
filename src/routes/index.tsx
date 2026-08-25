@@ -147,9 +147,6 @@ function Index() {
     if (presenceFilter === "zero") {
       list = list.filter((r) => r.level === "zero");
     }
-    if (presenceFilter === "contactable") {
-      list = list.filter((r) => r.contact.whatsappValid || Boolean(r.contact.instagramUrl));
-    }
 
     const sorted = [...list];
     sorted.sort((a, b) => {
