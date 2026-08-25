@@ -128,7 +128,10 @@ function Index() {
 
   const visibleResults = useMemo(() => {
     const order: Record<"zero" | "weak" | "full", number> = { zero: 0, weak: 1, full: 2 };
-    let list = results;
+    // Sempre apenas estabelecimentos contatáveis (WhatsApp válido ou Instagram)
+    let list = results.filter(
+      (r) => r.contact.whatsappValid || Boolean(r.contact.instagramUrl)
+    );
 
     if (minRating !== "any") {
       const min = Number.parseFloat(minRating);
