@@ -95,6 +95,23 @@ export function FiltersMenu({
 
         <div className="space-y-1.5">
           <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Presença digital
+          </Label>
+          <Select value={presenceFilter} onValueChange={onPresenceFilterChange}>
+            <SelectTrigger className="h-9 bg-background text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Todos os estabelecimentos</SelectItem>
+              <SelectItem value="weak">Apenas presença fraca ou nula</SelectItem>
+              <SelectItem value="zero">Apenas sinal zero (sem nada)</SelectItem>
+              <SelectItem value="contactable">Apenas contatáveis (WhatsApp/Insta)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
             Ordenar por
           </Label>
           <Select value={sortKey} onValueChange={(v) => onSortKeyChange(v as SortKey)}>
