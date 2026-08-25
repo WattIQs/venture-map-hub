@@ -72,8 +72,11 @@ export function toWhatsappNumber(raw: string | null): string | null {
   if (!digits) return null;
   digits = digits.replace(/^0+/, "");
 
-  // Números brasileiros: 10 (fixo) ou 11 (celular) dígitos com DDD.
-  if (digits.length === 10 || digits.length === 11) digits = `55${digits}`;
+  // Números brasileiros sem DDI: 10 (fixo) ou 11 (celular) dígitos com DDD.
+  const hasCountryCode = /^\s*\+/.test(first) || first.trim().startsWith("00");
+  if (!hasCountryCode && (digits.length === 10 || digits.length === 11)) {
+    digits = `55${digits}`;
+  }
   // Já com DDI 55: 12 ou 13 dígitos.
   if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
     const local = digits.slice(2);
